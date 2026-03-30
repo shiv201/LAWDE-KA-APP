@@ -1,88 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:geolocator/geolocator.dart';
 
-// NOTE: Add required dependencies in pubspec.yaml:
-// firebase_core, firebase_auth, cloud_firestore, firebase_database, geolocator
-// Also configure Firebase project files:
-// - android/app/google-services.json
-// - ios/Runner/GoogleService-Info.plist
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    // TODO: Add Firebase options if required (for web or manual config)
-  );
-
-  runApp(SentinelleApp());
+void main() {
+  runApp(const SentinelleApp());
 }
 
 class SentinelleApp extends StatelessWidget {
+  const SentinelleApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sentinelle',
-      theme: ThemeData(primarySwatch: Colors.red),
-      home: AuthScreen(),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        primaryColor: Colors.red,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          elevation: 0,
+        ),
+      ),
+      home: const HomeScreen(),
     );
   }
 }
 
-// ---------------- AUTH ----------------
-class AuthScreen extends StatefulWidget {
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
-  _AuthScreenState createState() => _AuthScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
-  final emailController = TextEditingController();
-  final passController = TextEditingController();
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
 
-  Future<void> login() async {
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passController.text.trim(),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomeScreen()),
-      );
-    } catch (e) {
-      print(e);
-    }
-  }
+  final List<Widget> _screens = const [
+    DashboardScreen(),
+    TrackingScreen(),
+    SafetyTipsScreen(),
+    ReportScreen(),
+    ProfileScreen(),
+  ];
 
-  Future<void> register() async {
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passController.text.trim(),
-      );
-      login();
-    } catch (e) {
-      print(e);
-    }
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: Colors.red,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.location_on), label: 'Track'),
+          BottomNavigationBarItem(icon: Icon(Icons.security), label: 'Safety'),
+          BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Report'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------- GLASS CONTAINER ----------------
+
+class GlassContainer extends StatelessWidget {
+  final Widget child;
+
+  const GlassContainer({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.05),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ---------------- DASHBOARD ----------------
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sentinelle')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(controller: emailController, decoration: InputDecoration(labelText: 'Email')),
-            TextField(controller: passController, decoration: InputDecoration(labelText: 'Password')),
-            SizedBox(height: 20),
-            ElevatedButton(onPressed: login, child: Text('Login')),
-            ElevatedButton(onPressed: register, child: Text('Register')),
+            const SizedBox(height: 20),
+
+            // SOS BUTTON
+            Center(
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Colors.red, Colors.redAccent],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.6),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    )
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'SOS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // QUICK FEATURES
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: const [
+                  FeatureCard(icon: Icons.shield, title: 'Safe Zones'),
+                  FeatureCard(icon: Icons.videocam, title: 'Evidence'),
+                  FeatureCard(icon: Icons.notifications, title: 'Shake Alert'),
+                  FeatureCard(icon: Icons.map, title: 'Live Location'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -90,153 +161,149 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-// ---------------- HOME ----------------
-class HomeScreen extends StatefulWidget {
+class FeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const FeatureCard({super.key, required this.icon, required this.title});
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _index = 0;
-
-  final pages = [
-    DashboardScreen(),
-    TrackingScreen(),
-    SafeZoneScreen(),
-    SafetyTipsScreen(),
-    FeedbackScreen(),
-  ];
-
-  Future<void> triggerSOS() async {
-    Position position = await Geolocator.getCurrentPosition();
-
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    // 1. Store alert in Firestore
-    await FirebaseFirestore.instance.collection('alerts').add({
-      'userId': userId,
-      'lat': position.latitude,
-      'lng': position.longitude,
-      'time': DateTime.now().toString(),
-    });
-
-    // 2. Start real-time tracking (Realtime DB)
-    FirebaseDatabase.instance.ref('tracking/$userId').set({
-      'lat': position.latitude,
-      'lng': position.longitude,
-    });
-
-    // TODO: Add notification logic using Firebase Cloud Messaging
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('SOS Sent'),
-        content: Text('Location shared with emergency contacts'),
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: Colors.red),
+          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
+}
+
+// ---------------- TRACKING ----------------
+
+class TrackingScreen extends StatelessWidget {
+  const TrackingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sentinelle')),
-      body: pages[_index],
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.red,
-        onPressed: triggerSOS,
-        child: Icon(Icons.warning),
+      appBar: AppBar(title: const Text('Real-time Tracking')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GlassContainer(
+          child: const Center(
+            child: Text('Map View Placeholder'),
+          ),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Tracking'),
-          BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Safe Zone'),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Tips'),
-          BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Feedback'),
+    );
+  }
+}
+
+// ---------------- SAFETY TIPS ----------------
+
+class SafetyTipsScreen extends StatelessWidget {
+  const SafetyTipsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Safety Tips')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          TipCard(title: 'Avoid isolated areas'),
+          TipCard(title: 'Keep emergency contacts ready'),
+          TipCard(title: 'Share your live location'),
+          TipCard(title: 'Stay alert in crowded places'),
         ],
       ),
     );
   }
 }
 
-// ---------------- SCREENS ----------------
-class DashboardScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Dashboard'));
-  }
-}
+class TipCard extends StatelessWidget {
+  final String title;
 
-class TrackingScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Google Maps goes here\n// TODO: Add Google Maps API key and implementation',
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-}
-
-class SafeZoneScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Geofencing logic here\n// TODO: Implement geofence using location stream',
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-}
-
-class SafetyTipsScreen extends StatelessWidget {
-  final tips = [
-    'Avoid isolated areas',
-    'Share your location',
-    'Keep emergency numbers ready'
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: tips.length,
-      itemBuilder: (_, i) => ListTile(title: Text(tips[i])),
-    );
-  }
-}
-
-class FeedbackScreen extends StatelessWidget {
-  final controller = TextEditingController();
-
-  Future<void> submit() async {
-    await FirebaseFirestore.instance.collection('feedback').add({
-      'text': controller.text,
-      'time': DateTime.now().toString(),
-    });
-  }
+  const TipCard({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        children: [
-          TextField(controller: controller),
-          ElevatedButton(
-            onPressed: () async {
-              await submit();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Submitted')),
-              );
-            },
-            child: Text('Submit'),
-          )
-        ],
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassContainer(
+        child: ListTile(
+          leading: const Icon(Icons.info, color: Colors.blue),
+          title: Text(title),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- REPORT ----------------
+
+class ReportScreen extends StatelessWidget {
+  const ReportScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Report Issue')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            GlassContainer(
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Describe the issue',
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                maxLines: 5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text('Submit Report'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- PROFILE ----------------
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: const [
+            CircleAvatar(radius: 40, backgroundColor: Colors.red, child: Icon(Icons.person, size: 40)),
+            SizedBox(height: 10),
+            Text('User Name', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 20),
+            ListTile(leading: Icon(Icons.phone), title: Text('Emergency Contacts')),
+            ListTile(leading: Icon(Icons.settings), title: Text('Settings')),
+          ],
+        ),
       ),
     );
   }
